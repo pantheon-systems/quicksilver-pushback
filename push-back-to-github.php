@@ -117,6 +117,21 @@ if (!empty($createNewBranchReason)) {
 print "git -C $repositoryRoot format-patch --stdout {$commitToSubmit}~ | git -C $workRepository am\n";
 exec("git -C $repositoryRoot format-patch --stdout {$commitToSubmit}~ | git -C $workRepository am 2>&1", $output, $applyStatus);
 
+// Next, we are going to get rid of all of the files in the applied commit
+// that are ignored by the .gitignore file.
+//  - First we remove all files with `git rm`, using `--cached` so they are not deleted
+//  - Next, re-add the non-ignored files with `git add`
+//  - Create a new commit with `git commit --amend` in non-interactive mode
+//  - Delete any remaining file not tracked by git (probably unnecessary).
+// Note that we do not want to do this operation on the source repository, because
+// it would have detrimental effects to the operating multidev site if we switched
+// branches. It might work out if we took care to not change any files (omit
+// the `git clean`), but it is more conservative to do it this way.
+passthru("git -C $workRepository rm --cached -r .");
+passthru("git -C $workRepository git add .");
+passthru("git -C $workRepository commit --amend --no-edit");
+passthru("git -C $workRepository clean -fX *");
+
 // Make sure that HEAD changed after 'git apply'
 $appliedCommit = exec('git -C $workRepository rev-parse HEAD');
 
