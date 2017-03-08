@@ -1,5 +1,23 @@
 <?php
 
+function load_github_secrets($gitHubSecretsFile)
+{
+  if (!file_exists($gitHubSecretsFile)) {
+    print "Could not find $gitHubSecretsFile\n";
+    return [];
+  }
+  $gitHubSecretsContents = file_get_contents($gitHubSecretsFile);
+  if (empty($gitHubSecretsContents)) {
+    print "GitHub secrets file is empty\n";
+    return [];
+  }
+  $gitHubSecrets = json_decode($gitHubSecretsContents, true);
+  if (empty($gitHubSecrets)) {
+    print "No data in GitHub secrets\n";
+  }
+  return $gitHubSecrets;
+}
+
 /**
  * Read the secrets.json file
  */
