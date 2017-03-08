@@ -81,14 +81,14 @@ passthru("git clone $upstreamRepoWithCredentials --depth=1 --branch $branch --si
 
 // If there have been extra commits, then unshallow the repository so that
 // we can make a branch off of the commit this multidev was built from.
-print "git -C $workRepository rev-parse HEAD\n";
+print "git rev-parse HEAD\n";
 $remoteHead = exec("git -C $workRepository rev-parse HEAD");
 if ($remoteHead != $fromSha) {
   // TODO: If we had git 2.11.0, we could use --shallow-since with the date
   // from $buildMetadata['commit-date'] to get exactly the commits we need.
   // Until then, though, we will just `unshallow` the whole branch if there
   // is a conflicting commit.
-  print "git -C $workRepository fetch --unshallow\n";
+  print "git fetch --unshallow\n";
   passthru("git -C $workRepository fetch --unshallow 2>&1");
 }
 
@@ -107,30 +107,15 @@ if (!empty($createNewBranchReason)) {
   // Warn that a new branch is being created.
   $targetBranch = substr($commitToSubmit, 0, 5) . $branch;
   print "Creating a new branch, '$targetBranch', because $createNewBranchReason.\n";
-  print "git -C $workRepository checkout -B $targetBranch $fromSha\n";
+  print "git checkout -B $targetBranch $fromSha\n";
   passthru("git -C $workRepository checkout -B $targetBranch $fromSha 2>&1");
 }
 
 // Use `git format-patch | git am` to do the equivalent of a cherry-pick
 // between the two repositories. This should not fail, as we are applying
 // our changes on top of the commit this branch was built from.
-print "git -C $repositoryRoot format-patch --stdout {$commitToSubmit}~ | git -C $workRepository am\n";
+print "git format-patch --stdout {$commitToSubmit}~ | git am\n";
 exec("git -C $repositoryRoot format-patch --stdout {$commitToSubmit}~ | git -C $workRepository am 2>&1", $output, $applyStatus);
-
-// Next, we are going to get rid of all of the files in the applied commit
-// that are ignored by the .gitignore file.
-//  - First we remove all files with `git rm`, using `--cached` so they are not deleted
-//  - Next, re-add the non-ignored files with `git add`
-//  - Create a new commit with `git commit --amend` in non-interactive mode
-//  - Delete any remaining file not tracked by git (probably unnecessary).
-// Note that we do not want to do this operation on the source repository, because
-// it would have detrimental effects to the operating multidev site if we switched
-// branches. It might work out if we took care to not change any files (omit
-// the `git clean`), but it is more conservative to do it this way.
-passthru("git -C $workRepository rm --cached -r .");
-passthru("git -C $workRepository git add .");
-passthru("git -C $workRepository commit --amend --no-edit");
-passthru("git -C $workRepository clean -fX *");
 
 // Make sure that HEAD changed after 'git apply'
 $appliedCommit = exec('git -C $workRepository rev-parse HEAD');
@@ -144,8 +129,37 @@ if ($appliedCommit == $remoteHead) {
 
 // If the apply worked, then push the commit back to the light repository.
 if (($applyStatus == 0) && ($appliedCommit != $remoteHead)) {
+
+  // Next, we are going to get rid of all of the files in the applied commit
+  // that are ignored by the .gitignore file.
+  //  - First we remove all files with `git rm`, using `--cached` so they are not deleted
+  //  - Next, re-add the non-ignored files with `git add`
+  //  - Create a new commit with `git commit --amend` in non-interactive mode
+  //  - Delete any remaining file not tracked by git (probably unnecessary).
+  // Note that we do not want to do this operation on the source repository, because
+  // it would have detrimental effects to the operating multidev site if we switched
+  // branches. It might work out if we took care to not change any files (omit
+  // the `git clean`), but it is more conservative to do it this way.
+  print "git rm --cached -r .\n";
+  passthru("git -C $workRepository rm --cached -r .", $status);
+  if ($status != 0) {
+    print "FAILED with $status\n";
+  }
+  print "git add .\n";
+  passthru("git -C $workRepository git add .", $status);
+  if ($status != 0) {
+    print "FAILED with $status\n";
+  }
+  print "git commit --amend\n";
+  passthru("git -C $workRepository commit --amend --no-edit", $status);
+  if ($status != 0) {
+    print "FAILED with $status\n";
+  }
+
+  // passthru("git -C $workRepository clean -fX *");
+
   // Push the new branch back to Pantheon
-  print "git -C $workRepository push $upstreamRepo $targetBranch\n";
+  print "git push $upstreamRepo $targetBranch\n";
   passthru("git -C $workRepository push $upstreamRepoWithCredentials $targetBranch 2>&1");
 
   // TODO: If a new branch was created, it would be cool to use the GitHub API
