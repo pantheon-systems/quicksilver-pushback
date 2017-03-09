@@ -16,12 +16,10 @@ if (!isset($_ENV['PANTHEON_ENVIRONMENT'])) {
   exit($result);
 }
 
-
 // Do nothing for test or live environments.
 if (in_array($_ENV['PANTHEON_ENVIRONMENT'], ['test', 'live'])) {
   return;
 }
-
 
 /**
  * This script will separates changes from the most recent commit
@@ -52,18 +50,18 @@ passthru("rm -rf $workDir");
 
 // Post error to dashboard and exit if the merge fails.
 if ($status != 0) {
-  $message = "Commit back to canonical repository failed with exit code $status.\n\n" . implode("\n", $output);
+  $message = "Commit back to canonical repository failed with exit code $status.";
   pantheon_raise_dashboard_error($message, true);
 }
 
 function push_back_to_github($fullRepository, $workDir, $github_token)
 {
-  $buildMetadataFile = "$fullRepository/build-metadata.json";
-  if (!file_exists($buildMetadataFile)) {
+  $buildMetadataFile = "build-metadata.json";
+  if (!file_exists("$fullRepository/$buildMetadataFile")) {
     print "Could not find build metadata file, $buildMetadataFile\n";
     return;
   }
-  $buildMetadataFileContents = file_get_contents($buildMetadataFile);
+  $buildMetadataFileContents = file_get_contents("$fullRepository/$buildMetadataFile");
   $buildMetadata = json_decode($buildMetadataFileContents, true);
   if (empty($buildMetadata)) {
     print "No data in build metadata\n";
@@ -89,7 +87,14 @@ function push_back_to_github($fullRepository, $workDir, $github_token)
   $branch = $buildMetadata['ref'];
 
   // The commit to cherry-pick
-  $commitToSubmit = exec('git rev-parse HEAD');
+  $commitToSubmit = exec('git -C $fullRepository rev-parse HEAD');
+
+  // Seatbelts: is build metadatafile modified in the HEAD commit?
+  $commitWithBuildMetadataFile = exec("git -C $fullRepository log -n 1 --pretty=format:%H -- $buildMetadataFile");
+  if ($commitWithBuildMetadataFile == $commitToSubmit) {
+    print "Ignoring commit because it contains build assets.\n";
+    return;
+  }
 
   // A working branch to make changes on
   $targetBranch = $branch;
@@ -184,15 +189,31 @@ function push_back_to_github($fullRepository, $workDir, $github_token)
   // Make sure that HEAD changed after 'git apply'
   $appliedCommit = exec("git -C $canonicalRepository rev-parse HEAD");
 
-  // Seatbelts: this should never happen
+  // Seatbelts: this generally should not happen. If it does, we will presume
+  // it is not an error; this situation might arise if someone commits only
+  // changes to build result files from dashboard.
   if ($appliedCommit == $remoteHead) {
     print "'git commit' did not add a commits. Status code: $commitStatus\n";
-    print "Output:\n";
-    print implode("\n", $output) . "\n";
+    return;
+  }
+
+  exec("git -C $canonicalRepository diff-tree --no-commit-id --name-only -r HEAD", $committedFiles);
+  $committedFiles = implode("\n", $committedFiles);
+  if (empty($committedFiles)) {
+    print "Commit $appliedCommit does not contain any files.\n";
+    return;
+  }
+  // Even more seatbelts: ensure that there is nothing in the
+  // commit that should not have been modified. Our .gitignore
+  // file should ensure this never happens. For now, only test
+  // 'vendor'.
+  if (preg_match('#^vendor/#', $committedFiles)) {
+    print "Aborting: commit $appliedCommit contains changes to the 'vendor' directory.\n";
+    return 1;
   }
 
   // If the apply worked, then push the commit back to the light repository.
-  if (($applyStatus == 0) && ($appliedCommit != $remoteHead)) {
+  if (($commitStatus == 0) && ($appliedCommit != $remoteHead)) {
 
     // Push the new branch back to Pantheon
     print "git push $upstreamRepo $targetBranch\n";
