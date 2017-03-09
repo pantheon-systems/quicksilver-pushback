@@ -1,11 +1,27 @@
 <?php
 
+include __DIR__ . '/lean-repo-utils.php';
+
+// ad-hoc cli usage: call with cwd set to full repository
+// TODO: refactor for testability (and write tests!)
+if (!isset($_ENV['PANTHEON_ENVIRONMENT'])) {
+  $fullRepository = getcwd();
+  $workDir = sys_get_temp_dir() . '/pushback-workdir';
+  passthru("rm -rf $workDir");
+  mkdir($workDir);
+  $github_token = getenv('GITHUB_TOKEN');
+
+  $result = push_back_to_github($fullRepository, $workDir, $github_token);
+
+  exit($result);
+}
+
+
 // Do nothing for test or live environments.
 if (in_array($_ENV['PANTHEON_ENVIRONMENT'], ['test', 'live'])) {
   return;
 }
 
-include __DIR__ . '/lean-repo-utils.php';
 
 /**
  * This script will separates changes from the most recent commit
@@ -13,35 +29,36 @@ include __DIR__ . '/lean-repo-utils.php';
  * master repository.
  */
 $bindingDir = $_SERVER['HOME'];
-$repositoryRoot = "$bindingDir/code";
-// $docRoot = "$repositoryRoot/" . $_SERVER['DOCROOT'];
+$fullRepository = "$bindingDir/code";
+// $docRoot = "$fullRepository/" . $_SERVER['DOCROOT'];
 
-print "Enter push-back-to-github. Repository root is $repositoryRoot.\n";
+print "Enter push-back-to-github. Repository root is $fullRepository.\n";
 
 $privateFiles = "$bindingDir/files/private";
 $gitHubSecretsFile = "$privateFiles/github-secrets.json";
 $gitHubSecrets = load_github_secrets($gitHubSecretsFile);
 $github_token = $gitHubSecrets['token'];
 
-$workDir = "$bindingDir/tmp";
+$workDir = "$bindingDir/tmp/pushback-workdir";
 
 // Temporary:
 passthru("rm -rf $workDir");
+mkdir($workDir);
 
-$result = push_back_to_github($repositoryRoot, $workDir, $github_token);
+$status = push_back_to_github($fullRepository, $workDir, $github_token);
 
 // Throw out the working repository.
 passthru("rm -rf $workDir");
 
 // Post error to dashboard and exit if the merge fails.
-if ($applyStatus != 0) {
-  $message = "git apply failed with exit code $applyStatus.\n\n" . implode("\n", $output);
+if ($status != 0) {
+  $message = "Commit back to canonical repository failed with exit code $status.\n\n" . implode("\n", $output);
   pantheon_raise_dashboard_error($message, true);
 }
 
-function push_back_to_github($repositoryRoot, $workDir, $github_token)
+function push_back_to_github($fullRepository, $workDir, $github_token)
 {
-  $buildMetadataFile = "$repositoryRoot/build-metadata.json";
+  $buildMetadataFile = "$fullRepository/build-metadata.json";
   if (!file_exists($buildMetadataFile)) {
     print "Could not find build metadata file, $buildMetadataFile\n";
     return;
@@ -101,6 +118,18 @@ function push_back_to_github($repositoryRoot, $workDir, $github_token)
     passthru("git -C $canonicalRepository fetch --unshallow 2>&1");
   }
 
+  // Get metadata from the commit at the HEAD of the full repository
+  $comment = escapeshellarg(exec("git -C $fullRepository log -1 --pretty=\"%s\""));
+  $commit_date = escapeshellarg(exec("git -C $fullRepository log -1 --pretty=\"%at\""));
+  $author_name = exec("git -C $fullRepository log -1 --pretty=\"%an\"");
+  $author_email = exec("git -C $fullRepository log -1 --pretty=\"%ae\"");
+  $author = escapeshellarg("$author_name <$author_email>");
+
+  print "Comment is $comment and author is $author and date is $commit_date\n";
+  // Make a safe space to store stuff
+  $safe_space = "$workDir/safe-space";
+  mkdir($safe_space);
+
   // If there are conflicting commits, or if this new commit is on the master
   // branch, then we will work from and push to a branch with a different name.
   // The user should then create a new PR on GitHub, and use the GitHub UI
@@ -120,92 +149,44 @@ function push_back_to_github($repositoryRoot, $workDir, $github_token)
     passthru("git -C $canonicalRepository checkout -B $targetBranch $fromSha 2>&1");
   }
 
-  // A bit of cleverness. (That means that it is dangerous to modify the code
-  // that follows. Understand the implications first.)  ;)
+  // Now for some git magic.
   //
-  // We cannot change branches on the source repository -- at least not permanently,
-  // and never in a way that would cause any changes to any part of the filesystem
-  // being served by the web server.  Bearing this in mind, we are going to very
-  // carefully get rid of all of the files in the applied commit.
+  // - $fullRepository contains all of the files we want to commit (and more).
+  // - $canonicalRepository is where we want to commit them.
   //
-  //  - First we remove all files with `git rm`, using `--cached` so they are not deleted.
-  //  - Next, we replace the .gitignore file from the canonical repository.
-  //  - Using the canonical .gitignore, we re-add the non-ignored files with `git add`.
-  //  - Once the .gitignore file has done its job, we reset it, so it will not be part of the canonical commit.
-  //  - The HEAD commit is then modified with `git commit --amend` in non-interactive mode.
+  // The .gitignore file in the canonical repository is correctly configured
+  // to ignore the build results that we do not want from the full repository.
   //
-  // Note that we cheated a bit in the middle -- the .gitignore file is momentarily
-  // modified as we run through these steps. The contents of this file are
-  // immaterial to the web server, though, so this indiscression is harmless.
-  print "git checkout -B $workbranch\n";
-  passthru("git -C $repositoryRoot checkout -B $workbranch", $status);
-  if ($status != 0) {
-    print "FAILED with $status\n";
-  }
-  print "Copy canonical .gitignore from $canonicalRepository to $repositoryRoot\n";
-  $canonical_gitignore = file_get_contents("$canonicalRepository/.gitignore");
-  file_put_contents("$repositoryRoot/.gitignore", $canonical_gitignore);
-  print "git rm --cached -r .\n";
-  passthru("git -C $repositoryRoot rm --cached -r -q .", $status);
-  if ($status != 0) {
-    print "FAILED with $status\n";
-  }
+  // To affect the change, we will:
+  //
+  // - Copy the .gitignore file from the canonical repository to the full repo.
+  // - Operate on the CONTENTS of the full repository with the .git directory
+  //   of the canonical repository via the --git-dir and -C flags.
+  // - We restore the .gitignore at the end via `git checkout -- .gitignore`.
+
+  $gitignore_contents = file_get_contents("$canonicalRepository/.gitignore");
+  file_put_contents("$fullRepository/.gitignore", $gitignore_contents);
+
+  // Add our files and make our commit
   print "git add .\n";
-  passthru("git -C $repositoryRoot add .", $status);
+  passthru("git --git-dir=$canonicalRepository/.git -C $fullRepository add .", $status);
   if ($status != 0) {
     print "FAILED with $status\n";
   }
+  // We don't want to commit the build-metadata to the canonical repository.
+  passthru("git --git-dir=$canonicalRepository/.git -C $fullRepository reset HEAD build-metadata.json");
+  // TODO: Copy author, message and perhaps other attributes from the commit at the head of the full repository
+  passthru("git --git-dir=$canonicalRepository/.git -C $fullRepository commit -q --no-edit --message=$comment --author=$author --date=$commit_date", $commitStatus);
 
-  print "reset .gitignore\n";
-  passthru("git -C $repositoryRoot reset HEAD .gitignore");
-  passthru("git -C $repositoryRoot checkout -- .gitignore");
-  print "git commit --amend\n";
-  passthru("git -C $repositoryRoot commit -q --amend --no-edit", $status);
-  if ($status != 0) {
-    print "FAILED with $status\n";
-  }
-
-  // Get the sha of the modified (canonical-files-only) commit
-  $canonicalCommitToSubmit = exec('git rev-parse HEAD');
-
-  // Use `git format-patch | git am` to do the equivalent of a cherry-pick
-  // between the two repositories. This should not fail, as we are applying
-  // our changes on top of the commit this branch was built from.
-  print "git -C $repositoryRoot format-patch --stdout {$canonicalCommitToSubmit}~ | git -C $canonicalRepository am\n";
-  exec("git -C $repositoryRoot format-patch --stdout {$canonicalCommitToSubmit}~ | git -C $canonicalRepository am 2>&1", $output, $applyStatus);
-
-  // Bring our primary repository back to the branch it started on.
-  // The first thing we need to do is re-commit the files we removed from
-  // the commit, because otherwise, git isn't going to want to overwrite
-  // them now that they are "untracked" files.
-  print "git add .\n";
-  passthru("git -C $repositoryRoot add .", $status);
-  if ($status != 0) {
-    print "FAILED with $status\n";
-  }
-  print "git commit --amend\n";
-  passthru("git -C $repositoryRoot commit -q --amend --no-edit", $status);
-  if ($status != 0) {
-    print "FAILED with $status\n";
-  }
-
-  print "git checkout -\n";
-  passthru("git -C $repositoryRoot checkout -", $status);
-  if ($status != 0) {
-    print "FAILED with $status\n";
-  }
-  print "git branch -D $workbranch\n";
-  passthru("git -C $repositoryRoot branch -D $workbranch", $status);
-  if ($status != 0) {
-    print "FAILED with $status\n";
-  }
+  // Get our .gitignore back
+  passthru("git -C $fullRepository checkout -- .gitignore");
 
   // Make sure that HEAD changed after 'git apply'
   $appliedCommit = exec("git -C $canonicalRepository rev-parse HEAD");
 
-  // Seatbelts: we expect this should only happen if $applyStatus != 0
+  // Seatbelts: this should never happen
   if ($appliedCommit == $remoteHead) {
-    print "'git apply' did not add any commits. Status code: $applyStatus\n";
+    print "'git commit' did not add a commits. Status code: $commitStatus\n";
     print "Output:\n";
     print implode("\n", $output) . "\n";
   }
@@ -223,5 +204,5 @@ function push_back_to_github($repositoryRoot, $workDir, $github_token)
     // here is converting the branch name to a PR number.
   }
 
-  return $applyStatus;
+  return $commitStatus;
 }
