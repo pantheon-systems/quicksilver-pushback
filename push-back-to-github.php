@@ -213,7 +213,7 @@ function push_back_to_github($fullRepository, $workDir, $github_token)
     print "Aborting: commit $appliedCommit contains changes to the 'vendor' directory.\n";
     return 1;
   }
-/*
+
   // If the apply worked, then push the commit back to the light repository.
   if (($commitStatus == 0) && ($appliedCommit != $remoteHead)) {
 
@@ -226,6 +226,6 @@ function push_back_to_github($fullRepository, $workDir, $github_token)
     // it would also be cool to cross-reference the new PR to the old PR. The trouble
     // here is converting the branch name to a PR number.
   }
-*/
+
   return $commitStatus;
 }
