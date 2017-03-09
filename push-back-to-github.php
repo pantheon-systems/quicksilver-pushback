@@ -87,7 +87,7 @@ function push_back_to_github($fullRepository, $workDir, $github_token)
   $branch = $buildMetadata['ref'];
 
   // The commit to cherry-pick
-  $commitToSubmit = exec('git -C $fullRepository rev-parse HEAD');
+  $commitToSubmit = exec("git -C $fullRepository rev-parse HEAD");
 
   // Seatbelts: is build metadatafile modified in the HEAD commit?
   $commitWithBuildMetadataFile = exec("git -C $fullRepository log -n 1 --pretty=format:%H -- $buildMetadataFile");
@@ -181,7 +181,7 @@ function push_back_to_github($fullRepository, $workDir, $github_token)
     print "FAILED with $status\n";
   }
   // We don't want to commit the build-metadata to the canonical repository.
-  passthru("git --git-dir=$canonicalRepository/.git -C $fullRepository reset HEAD build-metadata.json");
+  passthru("git --git-dir=$canonicalRepository/.git -C $fullRepository reset HEAD $buildMetadataFile");
   // TODO: Copy author, message and perhaps other attributes from the commit at the head of the full repository
   passthru("git --git-dir=$canonicalRepository/.git -C $fullRepository commit -q --no-edit --message=$comment --author=$author --date=$commit_date", $commitStatus);
 
@@ -213,7 +213,7 @@ function push_back_to_github($fullRepository, $workDir, $github_token)
     print "Aborting: commit $appliedCommit contains changes to the 'vendor' directory.\n";
     return 1;
   }
-
+/*
   // If the apply worked, then push the commit back to the light repository.
   if (($commitStatus == 0) && ($appliedCommit != $remoteHead)) {
 
@@ -226,6 +226,6 @@ function push_back_to_github($fullRepository, $workDir, $github_token)
     // it would also be cool to cross-reference the new PR to the old PR. The trouble
     // here is converting the branch name to a PR number.
   }
-
+*/
   return $commitStatus;
 }
