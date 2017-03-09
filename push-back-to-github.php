@@ -172,6 +172,8 @@ function push_back_to_github($fullRepository, $workDir, $github_token)
   $gitignore_contents = file_get_contents("$canonicalRepository/.gitignore");
   file_put_contents("$fullRepository/.gitignore", $gitignore_contents);
 
+  print "::::::::::::::::: .gitignore :::::::::::::::::\n$gitignore_contents\n";
+
   // Add our files and make our commit
   print "git add .\n";
   passthru("git --git-dir=$canonicalRepository/.git -C $fullRepository add .", $status);
