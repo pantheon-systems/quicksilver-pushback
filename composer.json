@@ -2,5 +2,8 @@
   "name": "pantheon-systems/quicksilver-pushback",
   "description": "Push commits made via the Pantheon dashboard back to original GitHub repository.",
   "type": "quicksilver-script",
+  "require": {
+    "composer/installers": "~1.0"
+  },
   "license": "MIT"
 }
