@@ -2,30 +2,8 @@
 
 include __DIR__ . '/lean-repo-utils.php';
 
-// ad-hoc cli usage: call with cwd set to full repository
-// TODO: refactor for testability (and write tests!)
-if (!isset($_ENV['PANTHEON_ENVIRONMENT'])) {
-  $fullRepository = getcwd();
-  $workDir = sys_get_temp_dir() . '/pushback-workdir';
-  passthru("rm -rf $workDir");
-  mkdir($workDir);
-  $github_token = getenv('GITHUB_TOKEN');
-
-  if (false === $github_token) {
-    $bindingDir = $_SERVER['HOME'];
-    $privateFiles = "$bindingDir/files/private";
-    $gitHubSecretsFile = "$privateFiles/github-secrets.json";
-    $gitHubSecrets = load_github_secrets($gitHubSecretsFile);
-    $github_token = $gitHubSecrets['token'];
-  }
-
-  $result = push_back_to_github($fullRepository, $workDir, $github_token);
-
-  exit($result);
-}
-
-// Do nothing for test or live environments.
-if (in_array($_ENV['PANTHEON_ENVIRONMENT'], ['test', 'live'])) {
+// Do nothing if not on Pantheon or if on the test/live environments.
+if (!isset($_ENV['PANTHEON_ENVIRONMENT']) || in_array($_ENV['PANTHEON_ENVIRONMENT'], ['test', 'live']) ) {
   return;
 }
 
