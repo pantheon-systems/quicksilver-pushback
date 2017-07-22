@@ -11,6 +11,14 @@ if (!isset($_ENV['PANTHEON_ENVIRONMENT'])) {
   mkdir($workDir);
   $github_token = getenv('GITHUB_TOKEN');
 
+  if (false === $github_token) {
+    $bindingDir = $_SERVER['HOME'];
+    $privateFiles = "$bindingDir/files/private";
+    $gitHubSecretsFile = "$privateFiles/github-secrets.json";
+    $gitHubSecrets = load_github_secrets($gitHubSecretsFile);
+    $github_token = $gitHubSecrets['token'];
+  }
+
   $result = push_back_to_github($fullRepository, $workDir, $github_token);
 
   exit($result);
