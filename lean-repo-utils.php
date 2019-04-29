@@ -1,28 +1,28 @@
 <?php
 
-function load_github_secrets($gitHubSecretsFile)
+function load_git_secrets($gitSecretsFile)
 {
-  if (!file_exists($gitHubSecretsFile)) {
-    print "Could not find $gitHubSecretsFile\n";
+  if (!file_exists($gitSecretsFile)) {
+    print "Could not find $gitSecretsFile\n";
     return [];
   }
-  $gitHubSecretsContents = file_get_contents($gitHubSecretsFile);
-  if (empty($gitHubSecretsContents)) {
+  $gitSecretsContents = file_get_contents($gitSecretsFile);
+  if (empty($gitSecretsContents)) {
     print "GitHub secrets file is empty\n";
     return [];
   }
-  $gitHubSecrets = json_decode($gitHubSecretsContents, true);
-  if (empty($gitHubSecrets)) {
-    print "No data in GitHub secrets\n";
+  $gitSecrets = json_decode($gitSecretsContents, true);
+  if (empty($gitSecrets)) {
+    print "No data in Git secrets\n";
   }
-  return $gitHubSecrets;
+  return $gitSecrets;
 }
 
 /**
  * Read the secrets.json file
  */
 function pantheon_get_secrets($bindingDir, $requiredKeys, $defaultValues) {
-  $secretsFile = "$bindingDir/files/private/secrets.json";
+  $secretsFile = "$bindingDir/files/private/.build-secrets/tokens.json";
   if (!file_exists($secretsFile)) {
     pantheon_raise_dashboard_error('Secrets file does not exist');
   }
@@ -49,18 +49,35 @@ function pantheon_get_secrets($bindingDir, $requiredKeys, $defaultValues) {
  */
 function pantheon_raise_dashboard_error($reason = 'Uknown failure', $extended = FALSE) {
   // Make creative use of the error reporting API
-  $data = array('file'=>'GitHub Integration',
+  $data = array('file'=>'Quicksilver Pushback',
                 'line'=>'Error',
                 'type'=>'error',
                 'message'=>$reason);
   $params = http_build_query($data);
   $result = pantheon_curl('https://api.live.getpantheon.com/sites/self/environments/self/events?'. $params, NULL, 8443, 'POST');
-  error_log("GitHub Integration failed - $reason");
+  error_log("Quicksilver Pushback Integration failed - $reason");
   // Dump additional debug info into the error log
   if ($extended) {
     error_log(print_r($extended, 1));
   }
-  die("GitHub Integration failed - $reason");
+  die("Quicksilver Pushback Integration failed - $reason");
+}
+
+/**
+ * Read the Build Providers file
+ */
+function load_build_providers($fullRepository) {
+    $buildProvidersFile = "build-providers.json";
+    if (!file_exists("$fullRepository/$buildProvidersFile")) {
+        pantheon_raise_dashboard_error("Could not find build metadata file, $buildProvidersFile\n");
+    }
+    $buildProvidersFileContents = file_get_contents("$fullRepository/$buildProvidersFile");
+    $buildProviders = json_decode($buildProvidersFileContents, true);
+    if (empty($buildProviders)) {
+        pantheon_raise_dashboard_error("No data in build providers\n");
+    }
+
+    return $buildProviders;
 }
 
 /**
@@ -69,12 +86,12 @@ function pantheon_raise_dashboard_error($reason = 'Uknown failure', $extended = 
 function load_build_metadata($fullRepository) {
     $buildMetadataFile = "build-metadata.json";
     if (!file_exists("$fullRepository/$buildMetadataFile")) {
-        pantheon_raise_dashboard_error("Could not find build metadata file, $buildMetadataFile\n");
+      pantheon_raise_dashboard_error("Could not find build metadata file, $buildMetadataFile\n");
     }
     $buildMetadataFileContents = file_get_contents("$fullRepository/$buildMetadataFile");
     $buildMetadata = json_decode($buildMetadataFileContents, true);
     if (empty($buildMetadata)) {
-        pantheon_raise_dashboard_error("No data in build metadata\n");
+      pantheon_raise_dashboard_error("No data in build providers\n");
     }
 
     return $buildMetadata;

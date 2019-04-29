@@ -19,8 +19,8 @@ $fullRepository = "$bindingDir/code";
 print "Enter push-back. Repository root is $fullRepository.\n";
 
 $privateFiles = "$bindingDir/files/private";
-$gitSecretsFile = "$privateFiles/git-secrets.json";
-$gitSecrets = load_github_secrets($gitSecretsFile);
+$gitSecretsFile = "$privateFiles/.build-secrets/tokens.json";
+$gitSecrets = load_git_secrets($gitSecretsFile);
 $git_token = $gitSecrets['token'];
 
 if (empty($git_token)) {
@@ -34,12 +34,13 @@ $workDir = "$bindingDir/tmp/pushback-workdir";
 passthru("rm -rf $workDir");
 mkdir($workDir);
 
+$buildProviders = load_build_providers($fullRepository);
 $buildMetadata = load_build_metadata($fullRepository);
 // The remote repo to push to
-$upstreamRepo = $buildMetadata['url'];
+$upstreamRepo = $buildProviders['url'];
 $upstreamRepoWithCredentials = $upstreamRepo;
-if (isset($buildMetadata['git-provider'])) {
-    switch ($buildMetadata['git-provider']) {
+if (isset($buildProviders['git-provider'])) {
+    switch ($buildProviders['git-provider']) {
         case 'github':
             $upstreamRepoWithCredentials = str_replace('git@github.com:', 'https://github.com/', $upstreamRepoWithCredentials);
             $upstreamRepoWithCredentials = str_replace('https://', "https://$git_token:x-oauth-basic@", $upstreamRepoWithCredentials);
