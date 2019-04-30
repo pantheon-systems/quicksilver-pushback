@@ -37,7 +37,7 @@ mkdir($workDir);
 $buildProviders = load_build_providers($fullRepository);
 $buildMetadata = load_build_metadata($fullRepository);
 // The remote repo to push to
-$upstreamRepo = $buildProviders['url'];
+$upstreamRepo = $buildMetadata['url'];
 $upstreamRepoWithCredentials = $upstreamRepo;
 if (isset($buildProviders['git-provider'])) {
     switch ($buildProviders['git-provider']) {
