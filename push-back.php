@@ -62,8 +62,17 @@ if (isset($buildProviders['git-provider'])) {
             break;
 
         case 'bitbucket':
-            pantheon_raise_dashboard_error('Bitbucket is not currently supported with Quicksilver Pushback.');
-            break;
+          $upstreamRepoWithCredentials = str_replace('git@bitbucket.org:', 'https://bitbucket.org/', $upstreamRepoWithCredentials);
+          if ((strpos($upstreamRepoWithCredentials, 'https://') !== false)) {
+            $parsed_url = parse_url($upstreamRepoWithCredentials);
+            $parsed_url['user'] = $gitSecrets['user'];
+            $parsed_url['pass'] = $gitSecrets['pass'];
+            $upstreamRepoWithCredentials = http_build_url($parsed_url);
+          }
+          else {
+            pantheon_raise_dashboard_error("Error parsing Bitbucket URL from Build Metadata.", true);
+          }
+          break;
 
         default:
 
