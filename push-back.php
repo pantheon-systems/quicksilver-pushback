@@ -39,8 +39,8 @@ $buildMetadata = load_build_metadata($fullRepository);
 // The remote repo to push to
 $upstreamRepo = $buildMetadata['url'];
 $upstreamRepoWithCredentials = $upstreamRepo;
-if (isset($buildProviders['git-provider'])) {
-    switch ($buildProviders['git-provider']) {
+if (isset($buildProviders['git'])) {
+    switch ($buildProviders['git']) {
         case 'github':
             $upstreamRepoWithCredentials = str_replace('git@github.com:', 'https://github.com/', $upstreamRepoWithCredentials);
             $upstreamRepoWithCredentials = str_replace('https://', "https://$git_token:x-oauth-basic@", $upstreamRepoWithCredentials);
