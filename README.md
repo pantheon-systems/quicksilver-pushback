@@ -8,13 +8,13 @@ This Quicksilver project is used in conjunction with the various suite of [Termi
 
 It is recommended that you use one of the example PR workflow projects ([Drupal 8](https://www.github.com/pantheon-systems/example-drops-8-composer), [WordPress](https://www.github.com/pantheon-systems/example-wordpress-composer)) as a starting point for leveraging this tool.
 
-- Support is only provided for the 2.x version of Terminus Build Tools.
+- Support is only provided for the `2.x` version of Terminus Build Tools.
 - The project currently supports Github, GitLab (including self-hosted), and BitBucket providers.
 - This Quicksilver script only works with Pantheon sites that have been configured to use a Git PR workflow.
 
 ### Installation
 
-This project is designed to be included from a site's composer.json file, and placed in its appropriate installation directory by [Composer Installers](https://github.com/composer/installers).
+This project is designed to be included from a site's `composer.json` file, and placed in its appropriate installation directory by [Composer Installers](https://github.com/composer/installers).
 
 In order for this to work, you should have the following in your composer.json file:
 
@@ -35,7 +35,7 @@ The project can be included by using the command:
 
 `composer require pantheon-systems/quicksilver-pushback:^2`
 
-If you are using one of the example PR workflow projects ([Drupal 8](https://www.github.com/pantheon-systems/example-drops-8-composer), [WordPress](https://www.github.com/pantheon-systems/example-wordpress-composer)) as a starting point for your site, these entries should already be present in your composer.json.
+If you are using one of the example PR workflow projects ([Drupal 8](https://www.github.com/pantheon-systems/example-drops-8-composer), [WordPress](https://www.github.com/pantheon-systems/example-wordpress-composer)) as a starting point for your site, these entries should already be present in your `composer.json`.
 
 ### Example `pantheon.yml`
 
@@ -52,3 +52,26 @@ workflows:
         script: private/scripts/quicksilver/quicksilver-pushback/push-back.php
 ```
 If you are using one of the example PR workflow projects as a starting point for your site, this entry should already be present in your pantheon.yml.
+
+### build-providers.json
+
+Quicksilver pushback requires a `build-providers.json` file in the git root that specifies the git provider used for the project.
+
+Valid `git` provider values are `github`, `gitlab` and `bitbucket`.
+
+Example contents of `build-providers.json` created by Terminus Build Tools for a GitHub and CircleCI project are below:
+
+```
+{"git":"github","ci":"circleci"}
+```
+
+## Upgrading from `1.x` to `2.x`
+
+Existing projects will have been created at different points in time, making the steps to upgrade slightly different for each project. In general, we have found success with the following:
+
+- Update to Quicksilver Pushback `2.x`
+- Copy `files/private/github-secrets.json` on the Pantheon site to `files/.build-secrets/tokens.json`
+  - This must be done for all environments
+- Ensure `build-providers.json` exists in the code base
+  - Projects created from an older version of Terminus Build Tools may have this missing
+- Update the Quicksilver Pushback script path in `pantheon.yml` from `private/scripts/quicksilver/quicksilver-pushback/push-back-to-github.php` to `private/scripts/quicksilver/quicksilver-pushback/push-back.php`
