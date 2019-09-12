@@ -63,7 +63,7 @@ if (isset($buildProviders['git'])) {
 
         case 'bitbucket':
             $upstreamRepoWithCredentials = str_replace('git@bitbucket.org:', 'https://bitbucket.org/', $upstreamRepoWithCredentials);
-            if ((strpos($upstreamRepoWithCredentials, 'https://') !== false)) {
+            if ((strpos($upstreamRepoWithCredentials, 'https://') !== false) || (strpos($upstreamRepoWithCredentials, 'http://') !== false)) {
                 $parsed_url = parse_url($upstreamRepoWithCredentials);
                 $parsed_url['user'] = $gitSecrets['user'];
                 $parsed_url['pass'] = $gitSecrets['pass'];
