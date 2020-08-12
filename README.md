@@ -70,7 +70,7 @@ Example contents of `build-providers.json` created by Terminus Build Tools for a
 Existing projects will have been created at different points in time, making the steps to upgrade slightly different for each project. In general, we have found success with the following:
 
 - Update to Quicksilver Pushback `2.x`
-- Copy `files/private/github-secrets.json` on the Pantheon site to `files/.build-secrets/tokens.json`
+- Copy `files/private/github-secrets.json` on the Pantheon site to `files/private/.build-secrets/tokens.json`
   - This must be done for all environments
 - Ensure `build-providers.json` exists in the code base
   - Projects created from an older version of Terminus Build Tools may have this missing
