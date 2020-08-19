@@ -28,7 +28,7 @@ if (empty($git_token)) {
     pantheon_raise_dashboard_error($message, true);
 }
 
-$workDir = sys_get_temp_dir() . "/tmp/pushback-workdir";
+$workDir = sys_get_temp_dir() . "/pushback-workdir";
 
 // Temporary:
 passthru("rm -rf $workDir");
