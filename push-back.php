@@ -13,12 +13,12 @@ if (!isset($_ENV['PANTHEON_ENVIRONMENT']) || in_array($_ENV['PANTHEON_ENVIRONMEN
  * master repository.
  */
 $bindingDir = $_SERVER['HOME'];
-$fullRepository = "$bindingDir/code";
+$fullRepository = realpath("$bindingDir/code");
 // $docRoot = "$fullRepository/" . $_SERVER['DOCROOT'];
 
 print "Enter push-back. Repository root is $fullRepository.\n";
 
-$privateFiles = "$bindingDir/files/private";
+$privateFiles = realpath("$bindingDir/files/private");
 $gitSecretsFile = "$privateFiles/.build-secrets/tokens.json";
 $gitSecrets = load_git_secrets($gitSecretsFile);
 $git_token = $gitSecrets['token'];
@@ -28,7 +28,7 @@ if (empty($git_token)) {
     pantheon_raise_dashboard_error($message, true);
 }
 
-$workDir = "$bindingDir/tmp/pushback-workdir";
+$workDir = sys_get_temp_dir() . "/pushback-workdir";
 
 // Temporary:
 passthru("rm -rf $workDir");
