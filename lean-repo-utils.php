@@ -158,7 +158,7 @@ function push_back($fullRepository, $workDir, $upstreamRepoWithCredentials, $bui
     $commit_date = escapeshellarg(exec("git -C $fullRepository log -1 --pretty=\"%at\""));
     $author_name = exec("git -C $fullRepository log -1 --pretty=\"%an\"");
     $author_email = exec("git -C $fullRepository log -1 --pretty=\"%ae\"");
-    $author = escapeshellarg("$author_name <$author_email>");
+    $author = "$author_name <$author_email>";
 
     print "Comment is $comment and author is $author and date is $commit_date\n";
     // Make a safe space to store stuff
@@ -213,7 +213,9 @@ function push_back($fullRepository, $workDir, $upstreamRepoWithCredentials, $bui
     // We don't want to commit the build-metadata to the canonical repository.
     passthru("git --git-dir=$canonicalRepository/.git -C $fullRepository reset HEAD $buildMetadataFile");
     // TODO: Copy author, message and perhaps other attributes from the commit at the head of the full repository
-    passthru("git --git-dir=$canonicalRepository/.git -C $fullRepository commit -q --no-edit --message=$comment --author=$author --date=$commit_date", $commitStatus);
+    passthru("git --git-dir=$canonicalRepository/.git -C $fullRepository config user.name ".escapeshellarg($author_name));
+    passthru("git --git-dir=$canonicalRepository/.git -C $fullRepository config user.email ".escapeshellarg($author_email));
+    passthru("git --git-dir=$canonicalRepository/.git -C $fullRepository commit -q --no-edit --message=$comment  --date=$commit_date", $commitStatus);
 
     // Get our .gitignore back
     passthru("git -C $fullRepository checkout -- .gitignore");
