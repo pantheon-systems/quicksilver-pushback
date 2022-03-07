@@ -1,5 +1,7 @@
 # Quicksilver Pushback
 
+[![Actively Maintained](https://img.shields.io/badge/Pantheon-Actively_Maintained-yellow?logo=pantheon&color=FFDC28)](https://pantheon.io/docs/oss-support-levels#actively-maintained)
+
 ![Quicksilver Pushback v2.x](https://img.shields.io/badge/Quicksilver_Pushback-v2.x-green.svg)  [![Terminus v2.x Compatible](https://img.shields.io/badge/terminus-v2.x-green.svg)](https://github.com/pantheon-systems/terminus-build-tools-plugin/tree/main)
 
 This Quicksilver project is used in conjunction with the various suite of [Terminus Build Tools](https://github.com/pantheon-systems/terminus-build-tools-plugin)-based example repositories to push any commits made on the Pantheon dashboard back to the original Git repository for the site. This allows developers (or other users) to work on the Pantheon dashboard in SFTP mode and commit their code, through Pantheon, back to the canonical upstream repository via a PR. This is especially useful in scenarios where you want to export configuration (Drupal, WP-CFM).
