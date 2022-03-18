@@ -211,7 +211,7 @@ function push_back($fullRepository, $workDir, $upstreamRepoWithCredentials, $bui
         print "FAILED with $status\n";
     }
     // We don't want to commit the build-metadata to the canonical repository.
-    passthru("git --git-dir=$canonicalRepository/.git -C $fullRepository reset HEAD $buildMetadataFile bash_env.txt dev-master");
+    passthru("git --git-dir=$canonicalRepository/.git -C $fullRepository reset HEAD $buildMetadataFile");
 
     $userName = exec("git --git-dir=$canonicalRepository/.git -C $fullRepository config user.name");
     if (empty($userName)) {
