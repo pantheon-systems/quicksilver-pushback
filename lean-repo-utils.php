@@ -211,7 +211,7 @@ function push_back($fullRepository, $workDir, $upstreamRepoWithCredentials, $bui
         print "FAILED with $status\n";
     }
     // We don't want to commit the build-metadata to the canonical repository.
-    passthru("git --git-dir=$canonicalRepository/.git -C $fullRepository reset HEAD $buildMetadataFile");
+    passthru("git --git-dir=$canonicalRepository/.git -C $fullRepository reset HEAD $buildMetadataFile bash_env.txt dev-master");
 
     $userName = exec("git --git-dir=$canonicalRepository/.git -C $fullRepository config user.name");
     if (empty($userName)) {
@@ -223,7 +223,7 @@ function push_back($fullRepository, $workDir, $upstreamRepoWithCredentials, $bui
     }
 
     // TODO: Copy author, message and perhaps other attributes from the commit at the head of the full repository
-    passthru("git --git-dir=$canonicalRepository/.git -C $fullRepository commit --no-edit --message=$comment --author=$author --date=$commit_date 2>&1", $commitStatus);
+    passthru("git --git-dir=$canonicalRepository/.git -C $fullRepository commit -q --no-edit --message=$comment --author=$author --date=$commit_date 2>&1", $commitStatus);
 
     // Get our .gitignore back
     passthru("git -C $fullRepository checkout -- .gitignore");
