@@ -274,8 +274,10 @@ class Pushback {
             // Get metadata from the commit at the commit of the full repository
             $comment = escapeshellarg(exec("git -C $fullRepository log -1 $commit --pretty=\"%s\""));
             $commit_date = escapeshellarg(exec("git -C $fullRepository log -1 $commit --pretty=\"%at\""));
-            $author_name = exec("git -C $fullRepository log -1 $commit --pretty=\"%an\"");
-            $author_email = exec("git -C $fullRepository log -1 $commit --pretty=\"%ae\"");
+            $author_name = escapeshellarg(exec("git -C $fullRepository log -1 $commit --pretty=\"%an\""));
+            $author_email = escapeshellarg(exec("git -C $fullRepository log -1 $commit --pretty=\"%ae\""));
+            exec("git -C user.email $author_email");
+            exec("git -C user.name $author_name");
             print("Author email: $author_email\n");
             $author = escapeshellarg("$author_name <$author_email>");
         
