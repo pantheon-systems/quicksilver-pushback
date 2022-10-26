@@ -276,11 +276,10 @@ class Pushback {
             $commit_date = escapeshellarg(exec("git -C $fullRepository log -1 $commit --pretty=\"%at\""));
             $author_name = escapeshellarg(exec("git -C $fullRepository log -1 $commit --pretty=\"%an\""));
             $author_email = escapeshellarg(exec("git -C $fullRepository log -1 $commit --pretty=\"%ae\""));
-            exec("git -C user.email $author_email");
-            exec("git -C user.name $author_name");
-            print("Author email: $author_email\n");
+            exec("git -C $fullRepository user.email $author_email");
+            exec("git -C $fullRepository user.name $author_name");
         
-            print "Comment is $comment and author is '$author' and date is $commit_date\n";
+            print "Comment is $comment and date is $commit_date\n";
             passthru("git -C $canonicalRepository status");
             print("git -C $canonicalRepository commit --message=$comment --date=$commit_date 2>&1");
             passthru("git -C $canonicalRepository commit --message=$comment --date=$commit_date 2>&1", $commitStatus);
