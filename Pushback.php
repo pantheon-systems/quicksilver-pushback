@@ -211,7 +211,7 @@ class Pushback {
     
         // Make a working clone of the Git branch. Clone just the branch
         // and commit we need.
-        passthru("git clone $upstreamRepoWithCredentials --depth=1 --branch $branch --single-branch $canonicalRepository 2>&1");
+        passthru("git clone $upstreamRepoWithCredentials --branch $branch --single-branch $canonicalRepository 2>&1");
         print("Cloning done.\n");
 
         // If there have been extra commits, then unshallow the repository so that
@@ -221,7 +221,7 @@ class Pushback {
 
         // A working branch to make changes on
         $targetBranch = $branch;
-        print("Checkpoint 1");
+        print("Checkpoint 1\n");
 
         // If there are conflicting commits, or if this new commit is on the master
         // branch, then we will work from and push to a branch with a different name.
