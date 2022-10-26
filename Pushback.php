@@ -196,7 +196,7 @@ class Pushback {
         // The commit to cherry-pick
         $commitToSubmit = exec("git -C $fullRepository rev-parse HEAD");
 
-        exec("git -C $fullRepository log $fromSha --pretty=format:%H", null, $status);
+        exec("git -C $fullRepository log $fromSha --pretty=format:%H", $output, $status);
         print("Status: $status\n");
         if ($status === 0) {
             // We will cherry-pick everything from $fromSha to $commitToSubmit excluding $commitWithBuildMetadataFile.
