@@ -244,7 +244,7 @@ class Pushback {
         }
         $localBranchName = "canon-$targetBranch";
         passthru("git -C $canonicalRepository checkout -b $localBranchName 2>&1");
-
+        print("New branch done.\n");
 
         foreach ($commits as $commit) {
             if ($commit == $commitWithBuildMetadataFile) {
@@ -256,6 +256,7 @@ class Pushback {
             if ($cherryPickResult != '') {
                 $this->raiseDashboardError("Cherry-pick failed with message: $cherryPickResult");
             }
+            print("Cherry-pick done.\n");
 
             // Get metadata from the commit at the commit of the full repository
             $comment = escapeshellarg(exec("git -C $fullRepository log -1 $commit --pretty=\"%s\""));
@@ -266,6 +267,7 @@ class Pushback {
         
             print "Comment is $comment and author is $author and date is $commit_date\n";
             passthru("git -C $canonicalRepository commit -q --no-edit --message=$comment --author=$author --date=$commit_date", $commitStatus);
+            print("Commit done: $commitStatus");
             if ($commitStatus != 0) {
                 break;
             }
@@ -275,6 +277,7 @@ class Pushback {
     
             // Push the new branch back to Pantheon
             passthru("git -C $canonicalRepository push origin $localBranchName:$targetBranch 2>&1");
+            print("Push done.\n");
     
             // TODO: If a new branch was created, it would be cool to use the Git API
             // to create a new PR. If there is an existing PR (i.e. branch not master),
