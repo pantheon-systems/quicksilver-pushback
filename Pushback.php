@@ -200,7 +200,7 @@ class Pushback {
         print("git -C $fullRepository rev-list --ancestry-path $fromSha..$commitToSubmit");
         $commitsString = exec("git -C $fullRepository rev-list --ancestry-path $fromSha..$commitToSubmit", $output);
         print("Commits to cherry-pick: $commitsString\n");
-        print("Commits to cherry-pick(outout): $output\n");
+        print("Commits to cherry-pick(output): " + print_r($output, true) + "\n");
         $commits = explode("\n", $commitsString);
         print("Commits to cherry-pick: " . print_r($commits, true) . "\n");
 
