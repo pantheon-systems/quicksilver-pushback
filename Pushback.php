@@ -201,14 +201,12 @@ class Pushback {
         if ($status === 0) {
             // We will cherry-pick everything from $fromSha to $commitToSubmit excluding $commitWithBuildMetadataFile.
             print("git -C $fullRepository rev-list --ancestry-path $fromSha..$commitToSubmit");
-            $commitsString = exec("git -C $fullRepository rev-list --ancestry-path $fromSha..$commitToSubmit", $output);
+            exec("git -C $fullRepository rev-list --ancestry-path $fromSha..$commitToSubmit", $commits);
         } else {
             // fromSha does not exist here, use all of the available commits.
-            $commitsString = exec("git -C $fullRepository log --pretty=format:%H", $output);
+            exec("git -C $fullRepository log --pretty=format:%H", $commits);
         }
-        print("Commits to cherry-pick: $commitsString\n");
-        print("Commits to cherry-pick(output): " . print_r($output, true) . "\n");
-        $commits = explode("\n", $commitsString);
+
         print("Commits to cherry-pick: " . print_r($commits, true) . "\n");
 
         $commitWithBuildMetadataFile = exec("git -C $fullRepository log -n 1 --pretty=format:%H -- $buildMetadataFile");
@@ -222,7 +220,7 @@ class Pushback {
     
         // Make a working clone of the Git branch. Clone just the branch
         // and commit we need.
-        passthru("git clone $upstreamRepoWithCredentials --branch $branch --single-branch $canonicalRepository 2>&1");
+        passthru("git clone $upstreamRepoWithCredentials --branch $branch $canonicalRepository 2>&1");
         print("Cloning done.\n");
 
         // If there have been extra commits, then unshallow the repository so that
