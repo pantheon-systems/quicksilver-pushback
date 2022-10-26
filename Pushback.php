@@ -196,16 +196,23 @@ class Pushback {
         // The commit to cherry-pick
         $commitToSubmit = exec("git -C $fullRepository rev-parse HEAD");
 
-        // We will cherry-pick everything from $fromSha to $commitToSubmit excluding $commitWithBuildMetadataFile.
-        print("git -C $fullRepository rev-list --ancestry-path $fromSha..$commitToSubmit");
-        $commitsString = exec("git -C $fullRepository rev-list --ancestry-path $fromSha..$commitToSubmit", $output);
+        exec("git -C $fullRepository log $fromSha --pretty=format:%H", null, $status);
+        print("Status: $status\n");
+        if ($status === 0) {
+            // We will cherry-pick everything from $fromSha to $commitToSubmit excluding $commitWithBuildMetadataFile.
+            print("git -C $fullRepository rev-list --ancestry-path $fromSha..$commitToSubmit");
+            $commitsString = exec("git -C $fullRepository rev-list --ancestry-path $fromSha..$commitToSubmit", $output);
+        } else {
+            // fromSha does not exist here, use all of the available commits.
+            $commitsString = exec("git -C $fullRepository log --pretty=format:%H", $output);
+        }
         print("Commits to cherry-pick: $commitsString\n");
         print("Commits to cherry-pick(output): " . print_r($output, true) . "\n");
         $commits = explode("\n", $commitsString);
         print("Commits to cherry-pick: " . print_r($commits, true) . "\n");
 
         $commitWithBuildMetadataFile = exec("git -C $fullRepository log -n 1 --pretty=format:%H -- $buildMetadataFile");
-
+        print("Commit with build metadata file: $commitWithBuildMetadataFile\n");
         // A working branch to make changes on    
         print "::::::::::::::::: Info :::::::::::::::::\n";
         print "We are going to check out $branch from {$buildMetadata['url']}, branch from $fromSha and cherry-pick up to $commitToSubmit onto it\n";
