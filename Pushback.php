@@ -221,6 +221,7 @@ class Pushback {
 
         // A working branch to make changes on
         $targetBranch = $branch;
+        print("Checkpoint 1");
 
         // If there are conflicting commits, or if this new commit is on the master
         // branch, then we will work from and push to a branch with a different name.
