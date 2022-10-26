@@ -279,7 +279,8 @@ class Pushback {
             $author = escapeshellarg("$author_name <$author_email>");
         
             print "Comment is $comment and author is $author and date is $commit_date\n";
-            passthru("git -C $canonicalRepository commit -q --no-edit --message=$comment --author=$author --date=$commit_date", $commitStatus);
+            passthru("git -C $canonicalRepository status");
+            passthru("git -C $canonicalRepository commit --no-edit --message=$comment --author=$author --date=$commit_date", $commitStatus);
             print("Commit done: $commitStatus");
             if ($commitStatus != 0) {
                 break;
