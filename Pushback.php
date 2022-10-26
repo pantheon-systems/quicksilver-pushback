@@ -279,7 +279,7 @@ class Pushback {
             exec("git -C user.email $author_email");
             exec("git -C user.name $author_name");
             print("Author email: $author_email\n");
-            $author = escapeshellarg("$author_name <$author_email>");
+            $author = "$author_name <$author_email>";
         
             print "Comment is $comment and author is $author and date is $commit_date\n";
             passthru("git -C $canonicalRepository status");
