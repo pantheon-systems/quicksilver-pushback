@@ -26,7 +26,7 @@ class Pushback {
 
         print "Enter push-back. Repository root is $fullRepository.\n";
 
-        $secrets = $this->getSecretsObject($secretsMechanism);
+        $secrets = $this->getSecretsObject('legacy');
         $git_token = $secrets->getSecret('token');
 
         if (empty($git_token)) {
@@ -84,7 +84,7 @@ class Pushback {
                 break;
         }
 
-        $status = $this->doPushback($fullRepository, $workDir, $upstreamRepoWithCredentials, $buildMetadata, "build-metadata.json");
+        $status = $this->doPushback2($fullRepository, $workDir, $upstreamRepoWithCredentials, $buildMetadata, "build-metadata.json");
 
         // Throw out the working repository.
         passthru("rm -rf $workDir");
@@ -178,13 +178,120 @@ class Pushback {
     /**
      * Do the actual push back to the source repo.
      */
-    private function doPushback($fullRepository, $workDir, $upstreamRepoWithCredentials, $buildMetadata, $buildMetadataFile)
+    private function doPushback2($fullRepository, $workDir, $upstreamRepoWithCredentials, $buildMetadata, $buildMetadataFile)
     {
-        // @todo HERE!!!
         print "::::::::::::::::: Build Metadata :::::::::::::::::\n";
         var_export($buildMetadata);
         print "\n\n";
+
+        $fromSha = $buildMetadata['sha'];
     
+        // The name of the PR branch
+        $branch = $buildMetadata['ref'];
+        // When working from HEAD, use branch master.
+        if ($branch == 'HEAD') {
+            $branch = 'master';
+        }
+    
+        // The commit to cherry-pick
+        $commitToSubmit = exec("git -C $fullRepository rev-parse HEAD");
+
+        // We will cherry-pick everything from $fromSha to $commitToSubmit excluding $commitWithBuildMetadataFile.
+        $commitsString = exec("git -C $fullRepository rev-list --ancestry-path $fromSha..$commitToSubmit");
+        $commits = explode("\n", $commitsString);
+
+        $commitWithBuildMetadataFile = exec("git -C $fullRepository log -n 1 --pretty=format:%H -- $buildMetadataFile");
+
+        // A working branch to make changes on    
+        print "::::::::::::::::: Info :::::::::::::::::\n";
+        print "We are going to check out $branch from {$buildMetadata['url']}, branch from $fromSha and cherry-pick up to $commitToSubmit onto it\n";
+    
+        $canonicalRepository = "$workDir/scratchRepository";
+        $workbranch = "recommit-work";
+    
+        // Make a working clone of the Git branch. Clone just the branch
+        // and commit we need.
+        passthru("git clone $upstreamRepoWithCredentials --depth=1 --branch $branch --single-branch $canonicalRepository 2>&1");
+        passthru("git remote add canonical $upstreamRepoWithCredentials 2>&1");
+
+        // If there have been extra commits, then unshallow the repository so that
+        // we can make a branch off of the commit this multidev was built from.
+        print "git rev-parse HEAD\n";
+        $remoteHead = exec("git -C $canonicalRepository rev-parse HEAD");
+
+        // A working branch to make changes on
+        $targetBranch = $branch;
+
+        // If there are conflicting commits, or if this new commit is on the master
+        // branch, then we will work from and push to a branch with a different name.
+        // The user should then create a new PR, and use the Git Provider UI to resolve
+        // any conflicts (or clone the branch locally to do the same thing).
+        $createNewBranchReason = '';
+        if ($branch == 'master') {
+            $createNewBranchReason = "the $branch branch cannot be pushed to directly";
+        }
+        elseif ($remoteHead != $fromSha) {
+            $createNewBranchReason = "new conflicting commits (e.g. $remoteHead) were added to the upstream repository";
+        }
+        passthru("git -C $canonicalRepository remote add canonical $upstreamRepoWithCredentials 2>&1");
+        if (!empty($createNewBranchReason)) {
+            // Warn that a new branch is being created.
+            $targetBranch = substr($commitToSubmit, 0, 5) . $branch;
+            print "Creating a new branch, '$targetBranch', because $createNewBranchReason.\n";
+        }
+        $localBranchName = "canon-$targetBranch";
+        passthru("git -C $canonicalRepository checkout -b $localBranchName canonical/$branch 2>&1");
+
+
+        foreach ($commits as $commit) {
+            if ($commit == $commitWithBuildMetadataFile) {
+                print("Ignoring commit $commit because it contains the build metadata file.\n");
+                continue;
+            }
+            print("Cherry-picking commit $commit.\n");
+            $cherryPickResult = exec("git -C $workDir cherry-pick -n $commit");
+            if ($cherryPickResult != '') {
+                $this->raiseDashboardError("Cherry-pick failed with message: $cherryPickResult");
+            }
+
+            // Get metadata from the commit at the HEAD of the full repository
+            $comment = escapeshellarg(exec("git -C $fullRepository log -1 $commit --pretty=\"%s\""));
+            $commit_date = escapeshellarg(exec("git -C $fullRepository log -1 $commit --pretty=\"%at\""));
+            $author_name = exec("git -C $fullRepository log -1 $commit --pretty=\"%an\"");
+            $author_email = exec("git -C $fullRepository log -1 $commit --pretty=\"%ae\"");
+            $author = escapeshellarg("$author_name <$author_email>");
+        
+            print "Comment is $comment and author is $author and date is $commit_date\n";
+            passthru("git -C $fullRepository commit -q --no-edit --message=$comment --author=$author --date=$commit_date", $commitStatus);
+            if ($commitStatus != 0) {
+                break;
+            }
+        }
+        // If the apply worked, then push the commit back to the light repository.
+        if ($commitStatus == 0) {
+    
+            // Push the new branch back to Pantheon
+            passthru("git -C $canonicalRepository push canonical $localBranchName:$targetBranch 2>&1");
+    
+            // TODO: If a new branch was created, it would be cool to use the Git API
+            // to create a new PR. If there is an existing PR (i.e. branch not master),
+            // it would also be cool to cross-reference the new PR to the old PR. The trouble
+            // here is converting the branch name to a PR number.
+        }
+    
+        return $commitStatus;
+
+    }
+
+    /**
+     * Do the actual push back to the source repo.
+     */
+    private function doPushback($fullRepository, $workDir, $upstreamRepoWithCredentials, $buildMetadata, $buildMetadataFile)
+    {
+        print "::::::::::::::::: Build Metadata :::::::::::::::::\n";
+        var_export($buildMetadata);
+        print "\n\n";
+
         // The last commit made on the lean repo prior to creating the build artifacts
         $fromSha = $buildMetadata['sha'];
     
@@ -209,7 +316,7 @@ class Pushback {
         $targetBranch = $branch;
     
         print "::::::::::::::::: Info :::::::::::::::::\n";
-        print "We are going to check out $branch from {$buildMetadata['url']}, branch from $fromSha and cherry-pick $commitToSubmit onto it\n";
+        print "We are going to check out $branch from {$buildMetadata['url']}, branch from $fromSha and cherry-pick to $commitToSubmit onto it\n";
     
         $canonicalRepository = "$workDir/scratchRepository";
         $workbranch = "recommit-work";
