@@ -198,7 +198,9 @@ class Pushback {
 
         // We will cherry-pick everything from $fromSha to $commitToSubmit excluding $commitWithBuildMetadataFile.
         $commitsString = exec("git -C $fullRepository rev-list --ancestry-path $fromSha..$commitToSubmit");
+        print("Commits to cherry-pick: $commitsString\n");
         $commits = explode("\n", $commitsString);
+        print("Commits to cherry-pick: " . print_r($commits, true) . "\n");
 
         $commitWithBuildMetadataFile = exec("git -C $fullRepository log -n 1 --pretty=format:%H -- $buildMetadataFile");
 
