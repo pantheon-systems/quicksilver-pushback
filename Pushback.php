@@ -212,7 +212,7 @@ class Pushback {
         // Make a working clone of the Git branch. Clone just the branch
         // and commit we need.
         passthru("git clone $upstreamRepoWithCredentials --depth=1 --branch $branch --single-branch $canonicalRepository 2>&1");
-        passthru("git remote add canonical $upstreamRepoWithCredentials 2>&1");
+        print("Cloning done.\n");
 
         // If there have been extra commits, then unshallow the repository so that
         // we can make a branch off of the commit this multidev was built from.
@@ -233,14 +233,15 @@ class Pushback {
         elseif ($remoteHead != $fromSha) {
             $createNewBranchReason = "new conflicting commits (e.g. $remoteHead) were added to the upstream repository";
         }
-        passthru("git -C $canonicalRepository remote add canonical $upstreamRepoWithCredentials 2>&1");
+        passthru("git -C $fullRepository remote add canonical $upstreamRepoWithCredentials 2>&1");
+        print("Adding remote done.\n");
         if (!empty($createNewBranchReason)) {
             // Warn that a new branch is being created.
             $targetBranch = substr($commitToSubmit, 0, 5) . $branch;
             print "Creating a new branch, '$targetBranch', because $createNewBranchReason.\n";
         }
         $localBranchName = "canon-$targetBranch";
-        passthru("git -C $canonicalRepository checkout -b $localBranchName canonical/$branch 2>&1");
+        passthru("git -C $fullRepository checkout -b $localBranchName canonical/$branch 2>&1");
 
 
         foreach ($commits as $commit) {
@@ -249,7 +250,7 @@ class Pushback {
                 continue;
             }
             print("Cherry-picking commit $commit.\n");
-            $cherryPickResult = exec("git -C $workDir cherry-pick -n $commit");
+            $cherryPickResult = exec("git -C $fullRepository cherry-pick -n $commit");
             if ($cherryPickResult != '') {
                 $this->raiseDashboardError("Cherry-pick failed with message: $cherryPickResult");
             }
