@@ -234,7 +234,8 @@ class Pushback {
         elseif ($remoteHead != $fromSha) {
             $createNewBranchReason = "new conflicting commits (e.g. $remoteHead) were added to the upstream repository";
         }
-        passthru("git -C $fullRepository remote add canonical $upstreamRepoWithCredentials 2>&1");
+        passthru("git -C $canonicalRepository remote add pantheon $fullRepository 2>&1");
+        passthru("git -C $canonicalRepository fetch pantheon 2>&1");
         print("Adding remote done.\n");
         if (!empty($createNewBranchReason)) {
             // Warn that a new branch is being created.
@@ -242,7 +243,7 @@ class Pushback {
             print "Creating a new branch, '$targetBranch', because $createNewBranchReason.\n";
         }
         $localBranchName = "canon-$targetBranch";
-        passthru("git -C $fullRepository checkout -b $localBranchName canonical/$branch 2>&1");
+        passthru("git -C $canonicalRepository checkout -b $localBranchName 2>&1");
 
 
         foreach ($commits as $commit) {
@@ -251,12 +252,12 @@ class Pushback {
                 continue;
             }
             print("Cherry-picking commit $commit.\n");
-            $cherryPickResult = exec("git -C $fullRepository cherry-pick -n $commit");
+            $cherryPickResult = exec("git -C $canonicalRepository cherry-pick -n $commit");
             if ($cherryPickResult != '') {
                 $this->raiseDashboardError("Cherry-pick failed with message: $cherryPickResult");
             }
 
-            // Get metadata from the commit at the HEAD of the full repository
+            // Get metadata from the commit at the commit of the full repository
             $comment = escapeshellarg(exec("git -C $fullRepository log -1 $commit --pretty=\"%s\""));
             $commit_date = escapeshellarg(exec("git -C $fullRepository log -1 $commit --pretty=\"%at\""));
             $author_name = exec("git -C $fullRepository log -1 $commit --pretty=\"%an\"");
@@ -264,7 +265,7 @@ class Pushback {
             $author = escapeshellarg("$author_name <$author_email>");
         
             print "Comment is $comment and author is $author and date is $commit_date\n";
-            passthru("git -C $fullRepository commit -q --no-edit --message=$comment --author=$author --date=$commit_date", $commitStatus);
+            passthru("git -C $canonicalRepository commit -q --no-edit --message=$comment --author=$author --date=$commit_date", $commitStatus);
             if ($commitStatus != 0) {
                 break;
             }
@@ -273,7 +274,7 @@ class Pushback {
         if ($commitStatus == 0) {
     
             // Push the new branch back to Pantheon
-            passthru("git -C $canonicalRepository push canonical $localBranchName:$targetBranch 2>&1");
+            passthru("git -C $canonicalRepository push origin $localBranchName:$targetBranch 2>&1");
     
             // TODO: If a new branch was created, it would be cool to use the Git API
             // to create a new PR. If there is an existing PR (i.e. branch not master),
