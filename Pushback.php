@@ -206,6 +206,7 @@ class Pushback {
             // fromSha does not exist here, use all of the available commits.
             exec("git -C $fullRepository log --pretty=format:%H", $commits);
         }
+        $commits = array_reverse($commits);
 
         print("Commits to cherry-pick: " . print_r($commits, true) . "\n");
 
@@ -243,8 +244,11 @@ class Pushback {
         elseif ($remoteHead != $fromSha) {
             $createNewBranchReason = "new conflicting commits (e.g. $remoteHead) were added to the upstream repository";
         }
+        print("Checkpoint 2\n");
         passthru("git -C $canonicalRepository remote add pantheon $fullRepository 2>&1");
+        print("Checkpoint 3\n");
         passthru("git -C $canonicalRepository fetch pantheon 2>&1");
+        print("Checkpoint 4\n");
         print("Adding remote done.\n");
         if (!empty($createNewBranchReason)) {
             // Warn that a new branch is being created.
