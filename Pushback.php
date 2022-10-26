@@ -280,10 +280,9 @@ class Pushback {
         
             print "Comment is $comment and author is $author and date is $commit_date\n";
             passthru("git -C $canonicalRepository status");
-            passthru("git -C $canonicalRepository add -A");
-            passthru("git -C $canonicalRepository status");
+            print("git -C $canonicalRepository commit --no-edit --message=$comment --author=$author --date=$commit_date");
             passthru("git -C $canonicalRepository commit --no-edit --message=$comment --author=$author --date=$commit_date", $commitStatus);
-            print("Commit done: $commitStatus");
+            print("Commit done: $commitStatus\n");
             if ($commitStatus != 0) {
                 break;
             }
