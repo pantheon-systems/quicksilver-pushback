@@ -210,6 +210,12 @@ class Pushback {
 
         $commitWithBuildMetadataFile = exec("git -C $fullRepository log -n 1 --pretty=format:%H -- $buildMetadataFile");
         print("Commit with build metadata file: $commitWithBuildMetadataFile\n");
+
+        if (count($commits) === 1 && $commits[0] === $commitWithBuildMetadataFile) {
+            print("Nothing to cherry-pick, exiting.\n");
+            return 0;
+        }
+
         // A working branch to make changes on    
         print "::::::::::::::::: Info :::::::::::::::::\n";
         print "We are going to check out $branch from {$buildMetadata['url']}, branch from $fromSha and cherry-pick up to $commitToSubmit onto it\n";
