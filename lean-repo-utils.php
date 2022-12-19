@@ -117,6 +117,9 @@ function push_back($fullRepository, $workDir, $upstreamRepoWithCredentials, $bui
         $branch = 'master';
     }
 
+    passthru("git -C $workDir clone $fullRepository fullRepository 2>&1");
+    $fullRepository = "$workDir/fullRepository";
+
     // The commit to cherry-pick
     $commitToSubmit = exec("git -C $fullRepository rev-parse HEAD");
 
