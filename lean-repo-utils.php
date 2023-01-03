@@ -117,6 +117,9 @@ function push_back($fullRepository, $workDir, $upstreamRepoWithCredentials, $bui
         $branch = 'master';
     }
 
+    passthru("git -C $workDir clone $fullRepository fullRepository 2>&1");
+    $fullRepository = "$workDir/fullRepository";
+
     // The commit to cherry-pick
     $commitToSubmit = exec("git -C $fullRepository rev-parse HEAD");
 
@@ -211,7 +214,7 @@ function push_back($fullRepository, $workDir, $upstreamRepoWithCredentials, $bui
         print "FAILED with $status\n";
     }
     // We don't want to commit the build-metadata to the canonical repository.
-    passthru("git --git-dir=$canonicalRepository/.git -C $fullRepository reset HEAD $buildMetadataFile");
+    passthru("git --git-dir=$canonicalRepository/.git -C $fullRepository reset HEAD $buildMetadataFile dev-master");
 
     $userName = exec("git --git-dir=$canonicalRepository/.git -C $fullRepository config user.name");
     if (empty($userName)) {
