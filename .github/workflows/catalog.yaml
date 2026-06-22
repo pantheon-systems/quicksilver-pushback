@@ -5,24 +5,18 @@ on:
   pull_request:
   push:
     branches:
-      - main
+      - master
 permissions:
   contents: "read"
   packages: "read"
   id-token: "write"
 jobs:
   docs:
-    if: "!contains(github.ref_name, '/')"
-    # SHA: 436c9e4b5ba68282956ffa169ae714827cf49bc5
-    # Source: service-catalog PR #113 merge commit (main branch, 2026-02-23)
     # Allowlisted in: projects/pantheon-wif/workload-identity-federation.tf
-    # See: https://github.com/pantheon-systems/gce-terraform/blob/master/projects/pantheon-wif/workload-identity-federation.tf#L106
-    uses: pantheon-systems/service-catalog/.github/workflows/docs-like-code.yaml@436c9e4b5ba68282956ffa169ae714827cf49bc5  # main 2026-02-23T15:36:38Z
+    # See: https://github.com/pantheon-systems/gce-terraform/blob/master/projects/pantheon-wif/workload-identity-federation.tf
+    uses: pantheon-systems/service-catalog/.github/workflows/docs-like-code.yaml@3900d7b3ffc55078d4b839a4cac44a459e111e76  # main 2026-06-11T11:15:13Z
   catalog-upload:
-    if: "!contains(github.ref_name, '/')"
-    # SHA: 436c9e4b5ba68282956ffa169ae714827cf49bc5
-    # Source: service-catalog PR #113 merge commit (main branch, 2026-02-23)
     # This SHA is allowlisted in the pantheon-service-catalog WIF pool for production classification
     # Allowlist location: projects/pantheon-wif/workload-identity-federation.tf (attribute.jwr_repo_file_env)
-    # See: https://github.com/pantheon-systems/gce-terraform/blob/master/projects/pantheon-wif/workload-identity-federation.tf#L106
-    uses: pantheon-systems/service-catalog/.github/workflows/catalog-upload.yaml@436c9e4b5ba68282956ffa169ae714827cf49bc5  # main 2026-02-23T15:36:38Z
+    # See: https://github.com/pantheon-systems/gce-terraform/blob/master/projects/pantheon-wif/workload-identity-federation.tf
+    uses: pantheon-systems/service-catalog/.github/workflows/catalog-upload.yaml@3900d7b3ffc55078d4b839a4cac44a459e111e76  # main 2026-06-11T11:15:13Z
