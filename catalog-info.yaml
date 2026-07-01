@@ -5,6 +5,7 @@ metadata:
   name: quicksilver-pushback
   description: Auto-generated catalog info for pantheon-systems/quicksilver-pushback
   annotations:
+    backstage.io/source-location: "url:https://github.com/pantheon-systems/quicksilver-pushback/blob/main/catalog-info.yaml"
     backstage.io/techdocs-ref: dir:docs/
 spec:
   type: tool
