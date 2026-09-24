@@ -1,13 +1,14 @@
+# Managed by github-terraform — do not edit manually
 ---
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: quicksilver-pushback
-  description: Auto-generated catalog info for pantheon-systems/quicksilver-pushback
+  name: "quicksilver-pushback"
+  description: "Push any commits made on the Pantheon dashboard back to the original GitHub repository."
   annotations:
-    backstage.io/source-location: "url:https://github.com/pantheon-systems/quicksilver-pushback/blob/main/catalog-info.yaml"
-    backstage.io/techdocs-ref: dir:docs/
+    "backstage.io/source-location": "url:https://github.com/pantheon-systems/quicksilver-pushback/blob/main/catalog-info.yaml"
+    "backstage.io/techdocs-ref": "dir:docs/"
 spec:
-  type: tool
-  lifecycle: mature
-  owner: devx
+  type: "tool"
+  lifecycle: "mature"
+  owner: "developer-experience"
