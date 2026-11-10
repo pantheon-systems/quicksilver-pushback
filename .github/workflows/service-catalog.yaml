@@ -17,7 +17,7 @@ jobs:
     # Source: service-catalog PR #113 merge commit (main branch, 2026-02-23)
     # Allowlisted in: projects/pantheon-wif/workload-identity-federation.tf
     # See: https://github.com/pantheon-systems/gce-terraform/blob/master/projects/pantheon-wif/workload-identity-federation.tf#L106
-    uses: pantheon-systems/service-catalog/.github/workflows/docs-like-code.yaml@efb692da7567baea9f08d75419df5455a7f6fdec  # main 2026-02-23T15:36:38Z
+    uses: pantheon-systems/service-catalog/.github/workflows/docs-like-code.yaml@879f04772e455472eb7405a348fd876a0877e221  # main 2026-02-23T15:36:38Z
   catalog-upload:
     if: "!contains(github.ref_name, '/')"
     # SHA: 436c9e4b5ba68282956ffa169ae714827cf49bc5
