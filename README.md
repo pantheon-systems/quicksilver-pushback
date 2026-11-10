@@ -67,6 +67,22 @@ Example contents of `build-providers.json` created by Terminus Build Tools for a
 {"git":"github","ci":"circleci"}
 ```
 
+## Releasing
+
+A release is a semver tag that Packagist picks up; sites get it on their next `composer update`.
+Nothing here builds or deploys. See [DEPLOYMENT.md](DEPLOYMENT.md).
+
+## Rollback
+
+- **When:** a new release breaks pushing dashboard commits back to the external Git repo.
+- **Recover:** revert the change on `main` and tag a new patch release, so `^2` resolves to good code;
+  affected sites run `composer update pantheon-systems/quicksilver-pushback`. Never delete or move a
+  published tag.
+- **Verify:** packagist.org lists the new tag with the expected commit.
+- **Who:** `#ask-hosting` (developer-experience).
+
+Details: [DEPLOYMENT.md](DEPLOYMENT.md#rollback).
+
 ## Upgrading from `1.x` to `2.x`
 
 Existing projects will have been created at different points in time, making the steps to upgrade slightly different for each project. In general, we have found success with the following:
